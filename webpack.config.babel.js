@@ -31,8 +31,8 @@ export default {
         }),
         new CopyWebpackPlugin([
             {
-                from: path.join(__dirname, 'src/test'),
-                to: 'static'
+                from: path.join(__dirname, 'test/static'),
+                to: 'static/video'
             }
         ])
     ]

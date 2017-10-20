@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "build": "webpack --config webpack.config.babel.js -p --colors"
+    "build": "webpack --config webpack.config.babel.js -p --colors",
+    "server": "http-server build -p 8888"
   },
   "author": "",
   "license": "ISC",

@@ -1,4 +1,5 @@
 import Decoder from './decode';
+import Encoder from './encode';
 
 export default class Weplayer {
     constructor(options, callback) {
@@ -39,9 +40,9 @@ export default class Weplayer {
                 
                 // ms.endOfStream();
                 let decoder = new Decoder();
-                let result = decoder.parseBoxs(buf, t.parseIndex, t.videoTotalLength);
+                let result = decoder.parseBoxs(buf, t.parseIndex, response.byteLength);
                 console.log(result);
-                // createFragmentedMP4(buf, results);
+                Encoder.createFragmentedMP4(buf, result);
                 // buffer.appendBuffer(fragments.buffer);
                 // buffer.appendBuffer(buf);
             })
@@ -52,13 +53,13 @@ export default class Weplayer {
             xhr.onload = function() {
                 cb(xhr);
             }
-            xhr.open('get', './test.mp4');
+            xhr.open('get', t.url);
             xhr.setRequestHeader('Range', 'bytes=' + t.range);
             xhr.responseType = 'arraybuffer';
             xhr.send(null);
         }
         this.video.onload = function(e) {
-            window.URL.revokeObjectURL(video.src);
+            window.URL.revokeObjectURL(t.video.src);
         };
     }
 }
