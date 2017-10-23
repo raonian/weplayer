@@ -42,8 +42,9 @@ export default class Weplayer {
                 let decoder = new Decoder();
                 let result = decoder.parseBoxs(buf, t.parseIndex, response.byteLength);
                 console.log(result);
-                Encoder.createFragmentedMP4(buf, result);
-                // buffer.appendBuffer(fragments.buffer);
+                let encoder = new Encoder();
+                let fragments = encoder.createFragmentedMP4(buf, result);
+                buffer.appendBuffer(fragments.buffer);
                 // buffer.appendBuffer(buf);
             })
             
