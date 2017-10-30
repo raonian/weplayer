@@ -26,9 +26,9 @@ export default class Weplayer {
                 // buffer.timestampOffset = buffer.buffered.end(1);
                 // loadVideo();
                 ms.endOfStream();
-        
-                // console.log(buffer.buffered.start(0))
-                // console.log(buffer.buffered.end(0))
+                // t.video.currentTime = 0.2;
+                console.log(buffer.buffered.start(0))
+                console.log(buffer.buffered.end(0))
                 // if(i==ranges.length) ms.endOfStream();
             })
             
@@ -60,7 +60,7 @@ export default class Weplayer {
             xhr.send(null);
         }
         this.video.onload = function(e) {
-            window.URL.revokeObjectURL(t.video.src);
+            // window.URL.revokeObjectURL(t.video.src);
         };
     }
 }
