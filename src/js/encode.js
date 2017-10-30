@@ -844,6 +844,7 @@ export default class Encode {
         // console.log(this.baseBuffer, this.fragmentBuffer)
         res = res.concat(this.baseBuffer);
         this.fragmentBuffer.map((a, i) => {
+            // if(i > 5 && i < 15) return;
             res = res.concat(a);
             res = res.concat(this.mdats[i]);
         });
