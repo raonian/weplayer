@@ -36,12 +36,12 @@ export default class Weplayer {
                 let response = xhr.response;
                 t.loadedSize += response.length;
                 let buf = new Uint8Array(response);
-                console.log('buf------', buf);
+                // console.log('buf------', buf);
                 
                 // ms.endOfStream();
                 let decoder = new Decoder();
                 let result = decoder.parseBoxs(buf, t.parseIndex, response.byteLength);
-                console.log(result);
+                console.log(result, 'box');
                 let encoder = new Encoder();
                 let fragments = encoder.createFragmentedMP4(buf, result);
                 buffer.appendBuffer(fragments.buffer);

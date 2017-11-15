@@ -11,7 +11,7 @@ export default {
     output: {
         publicPath: '/',
         path: path.join(__dirname, 'build'),
-        filename: 'static/js/[chunkhash].[name].js'
+        filename: 'static/js/[name].js'
     },
     resolve: {
         extensions: ['.js']
@@ -24,6 +24,7 @@ export default {
         }]
     },
     plugins: [
+        new webpack.HotModuleReplacementPlugin(),
         new CleanWebpackPlugin(['build']),
         new HtmlWebpackPlugin({
             filename: 'index.html',
@@ -35,5 +36,12 @@ export default {
                 to: 'static/video'
             }
         ])
-    ]
+    ],
+    devServer: {
+        host: '127.0.0.1',
+        port: '8888',
+        inline: true,
+        historyApiFallback: true,
+        contentBase: path.join(__dirname, 'build')
+    }
 }

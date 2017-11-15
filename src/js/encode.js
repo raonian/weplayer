@@ -715,6 +715,7 @@ export default class Encode {
                         this.baseDataOffset += this.containBox.size;
 
                         this.creater[type](Array.from(buf.slice(start, end)), box);
+                        // this.creater[type](new Uint8Array(buf, start, size), box);
                         
                     }else {
                         let body = this.creater[type](buf.slice(start, end), box);
@@ -851,7 +852,7 @@ export default class Encode {
         
         // res = res.concat(mfras);
         this.fragments = new Uint8Array(res);
-        console.log(this.fragments);
+        console.log(this.fragments, 'fragments');
     }
     createSize(num, flag = 4) {
         let array = new Array(2 * flag).fill(0);
