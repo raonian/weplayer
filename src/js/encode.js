@@ -59,9 +59,9 @@ export default class Encode {
         this.creater = {
             'ftyp': (source) => {
                 let ary = Array.from(source);
-                ary.splice(-4, 0, ...[105, 115, 111, 54]);
+                // ary.splice(-4, 0, ...[105, 115, 111, 54]);
                 // ary.splice(8, 4, 109, 112, 52, 50);
-                ary.splice(0, 4, ...this.createSize(ary.length));
+                // ary.splice(0, 4, ...this.createSize(ary.length));
                 // ary.splice(12, 4, 0, 0, 2, 0);
                 return ary;
 
@@ -69,7 +69,7 @@ export default class Encode {
             },
             'mvhd': (source, box) => {
                 let mvhds = Array.from(source);
-                mvhds.splice(24, 4, 0, 0, 0, 0);
+                // mvhds.splice(24, 4, 0, 0, 0, 0);
                 // mvhds.splice(-4, 4, 0, 0, 0, 2);
                 this.mduration = box.duration;
                 return mvhds;
@@ -95,7 +95,7 @@ export default class Encode {
                 this.durations[this.traks.trakId] = box.duration;
 
                 let mvhds = Array.from(source);
-                mvhds.splice(24, 4, 0, 0, 0, 0);
+                // mvhds.splice(24, 4, 0, 0, 0, 0);
                 // mvhds.splice(-4, 2, 21, 199);
                 return mvhds;
                 // return Array.from(source);
@@ -196,16 +196,16 @@ export default class Encode {
             'udta': (source, box) => {
                 const {size, type, value} = box;
                 let values = Array.from(value);
-                values[93 - 8]--;
-                values[97 - 8]++;
+                // values[93 - 8]--;
+                // values[97 - 8]++;
                 return [...this.createSize(size), ...this.createType(type), ...values];
                 // return [];
             },
             'free': (source) => {
                 return [];
             },
-            'mdat': (source, box) => {
-                this.createMdat(source);
+            'mdat': (source, box, start) => {
+                this.createMdat(source, start);
                 this.keyframes.slice(0, -1).map((n, i) => {
                     this.createMoof(n, i);
                 });
@@ -445,10 +445,10 @@ export default class Encode {
             if(i > 0){
                 sampleduration = 1024;
             }
-            if(j == 20 && i == count - 1) {
-                sampleduration = 2765;
-                soundDuration = 717;
-            }
+            // if(j == 20 && i == count - 1) {
+            //     sampleduration = 2765;
+            //     soundDuration = 717;
+            // }
             if(trakId === 2) {
                 sampleoffset = 1024;
                 // console.log(samplesize, i + n)
@@ -467,7 +467,7 @@ export default class Encode {
                         // [...this.createSize(samplesize)]
                         // j > 0 && j < 20 ? 
                         // [...this.createSize(samplesize)] :
-                        [...this.createSize(soundDuration), ...this.createSize(samplesize)]
+                        [...this.createSize(1024), ...this.createSize(samplesize)]
             })
             
         }
@@ -594,7 +594,7 @@ export default class Encode {
         // console.log(soundChunk)
         this.samplePerChunk[this.traks.trakId] = trakChunk;
     }
-    createMdat(source) {
+    createMdat(source, start) {
         const videoChunk = this.samplePerChunk[1];
         const soundChunk = this.samplePerChunk[2];
         const sample = this.samples[1];
@@ -604,6 +604,8 @@ export default class Encode {
         let frames = [];
         let step = 1;
         this.keyframes.push(sample.length);
+
+        console.log(this.samples, 'samples', this.samplePerChunk, 'samplePerChunk', this.keyframes);
 
         let keyVideoChunks = [];
         let keySoundChunks = [];
@@ -658,7 +660,7 @@ export default class Encode {
 
         // v s 分离
 
-        let start = 0, end = 0, bufferLength;
+        let end = 0, bufferLength;
         let videoBuffer = [], soundBuffer = [];
         for(let x = 0, y = 0, z = 0; x < keyframesLength;) {
             if(y < this.keyFrameChunks['1'][x].length) {
@@ -668,12 +670,14 @@ export default class Encode {
                 //     sizeVideo -= 8;
                 // }
                 end = start + sizeVideo;
-                videoBuffer = videoBuffer.concat(source.slice(start, end));
+                // videoBuffer = videoBuffer.concat(Array.from(source.slice(start, end)));
+                videoBuffer.push(source.slice(start, end));
                 start = end;
 
                 let sizeSound = soundChunk[z].reduce(function(a, b){return a + b}, 0);
                 end = start + sizeSound;
-                soundBuffer = soundBuffer.concat(source.slice(start, end));
+                // soundBuffer = soundBuffer.concat(Array.from(source.slice(start, end)));
+                soundBuffer.push(source.slice(start, end));
                 start = end;
 
                 y += step;
@@ -682,9 +686,13 @@ export default class Encode {
                 // z++;
                 y = 0;
                 x++;
-                this.videoTrack.push(videoBuffer);
+                videoBuffer = this.concatTypeArray(...videoBuffer);
+                soundBuffer = this.concatTypeArray(...soundBuffer);
+                // this.videoTrack.push(videoBuffer);
                 bufferLength = videoBuffer.length + soundBuffer.length;
-                this.mdats.push([...this.createSize(bufferLength + 8), 109, 100, 97, 116, ...videoBuffer, ...soundBuffer]);
+                // this.mdats.push([...this.createSize(bufferLength + 8), 109, 100, 97, 116, ...videoBuffer, ...soundBuffer]);
+                let bufferHead = new Uint8Array([...this.createSize(bufferLength + 8), 109, 100, 97, 116]);
+                this.mdats.push(this.concatTypeArray(bufferHead, videoBuffer, soundBuffer));
                 videoBuffer = [];
                 soundBuffer = [];
             }
@@ -693,7 +701,20 @@ export default class Encode {
             // soundBuffer = [];
         }
         // this.mdats.push([...this.createSize(size + 8), 109, 100, 97, 116, ...videoBuffer, ...soundBuffer]);
-
+        
+    }
+    concatTypeArray(...arrays) {
+        let total = 0;
+        for(let arr of arrays) {
+            total += arr.length;
+        }
+        let result = new Uint8Array(total);
+        let offset = 0;
+        for(let arr of arrays) {
+            result.set(arr, offset);
+            offset += arr.length;
+        }
+        return result;
     }
 
     // 入口函数
@@ -713,12 +734,12 @@ export default class Encode {
                     if(type === 'mdat') {
                         // console.log(moofs);
                         this.baseDataOffset += this.containBox.size;
-
-                        this.creater[type](Array.from(buf.slice(start, end)), box);
-                        // this.creater[type](new Uint8Array(buf, start, size), box);
+                        // this.creater[type](Array.from(buf.slice(start, end)), box);
+                        this.creater[type](new Uint8Array(buf, start, size), box, start);
                         
                     }else {
                         let body = this.creater[type](buf.slice(start, end), box);
+                        // let body = this.creater[type](new Uint8Array(buf, start, size), box);
                         box.buffer = body;
                         box.size = body.length;
 
@@ -844,15 +865,20 @@ export default class Encode {
         // console.log('moofs', this.fragmentBuffer);
         // console.log(this.baseBuffer, this.fragmentBuffer)
         res = res.concat(this.baseBuffer);
+        let resultBuffer = [new Uint8Array(this.baseBuffer)];
         this.fragmentBuffer.map((a, i) => {
             // if(i > 5 && i < 15) return;
-            res = res.concat(a);
-            res = res.concat(this.mdats[i]);
+            // res = res.concat(a);
+            // res = res.concat(this.mdats[i]);
+
+            resultBuffer.push(new Uint8Array(a));
+            resultBuffer.push(this.mdats[i]);
         });
         
         // res = res.concat(mfras);
-        this.fragments = new Uint8Array(res);
-        console.log(this.fragments, 'fragments');
+        // this.fragments = new Uint8Array(res);
+        this.fragments = this.concatTypeArray(...resultBuffer);
+        // console.log(this.fragments, 'fragments');
     }
     createSize(num, flag = 4) {
         let array = new Array(2 * flag).fill(0);
