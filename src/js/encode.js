@@ -21,6 +21,7 @@ export default class Encode {
         this.timeoffsets = [];
         this.chunks = [];
         this.sequence = {};
+        this.sampleDuration = {};
         this.offsets = [];
         this.baseDataOffset = 0;
         // this.metaDataOffset = 8;
@@ -42,7 +43,7 @@ export default class Encode {
                 // {
                 //     size: 16,
                 //     type: 'mehd',
-                //     buffer: [0, 0, 0, 16, 109, 101, 104, 100, 0, 0, 0, 0, ...this.createSize(mduration)]
+                //     buffer: [0, 0, 0, 16, 109, 101, 104, 100, 0, 0, 0, 0, ...this.createSize(this.mduration)]
                 // },
                 {
                     size: 32,
@@ -59,20 +60,12 @@ export default class Encode {
         this.creater = {
             'ftyp': (source) => {
                 let ary = Array.from(source);
-                // ary.splice(-4, 0, ...[105, 115, 111, 54]);
-                // ary.splice(8, 4, 109, 112, 52, 50);
-                // ary.splice(0, 4, ...this.createSize(ary.length));
-                // ary.splice(12, 4, 0, 0, 2, 0);
-                // return [0,0,0,32,102,116,121,112,105,115,111,109,0,0,2,0,105,115,111,109,105,115,111,50,97,118,99,49,109,112,52,49];
                 return ary;
-
-                // return [0, 0, 0, 28, 102, 116, 121, 112, 109, 112, 52, 50, 0, 0, 0, 1, 109, 112, 52, 50, 97, 118, 99, 49, 105, 111, 115, 53];
             },
             'mvhd': (source, box) => {
                 let mvhds = Array.from(source);
-                // mvhds.splice(24, 4, 0, 0, 0, 0);
-                // mvhds.splice(-4, 4, 0, 0, 0, 2);
                 this.mduration = box.duration;
+                // this.mvex.children[0].buffer.splice(12, 4, ...this.createSize(box.duration));
                 return mvhds;
             },
             'iods': (source, box) => {
@@ -85,7 +78,6 @@ export default class Encode {
                 let mvhds = Array.from(source);
                 mvhds.splice(20, 4, ...this.createSize(box.trak_ID));
                 mvhds.splice(28, 4, 0, 0, 0, 0);
-                // mvhds.splice(-8, 8, 0, 0, 0, 0, 0, 0, 0, 0);
                 
                 return mvhds;
                 // return Array.from(source);
@@ -99,10 +91,7 @@ export default class Encode {
                 this.durations[this.traks.trakId] = box.duration;
 
                 let mvhds = Array.from(source);
-                // mvhds.splice(24, 4, 0, 0, 0, 0);
-                // mvhds.splice(-4, 2, 21, 199);
                 return mvhds;
-                // return Array.from(source);
             },
             'hdlr': (source, box) => {
                 this.traks.handlerType = box.handler_type;
@@ -119,14 +108,9 @@ export default class Encode {
                 return Array.from(source);
             },
             'avc1': (source, box) => {
-                // let newAvc = Array.from(source);
-                // newAvc.splice(-15, 2, 0, 0);
-                // return newAvc;
                 return Array.from(source);
             },
             'mp4a': (source, box) => {
-                // let newMp4 = [0, 0, 0, 90, 109, 112, 52, 97, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 16, 0, 0, 0, 0, 172, 68, 0, 0, 0, 0, 0, 54, 101, 115, 100, 115, 0, 0, 0, 0, 3, 128, 128, 128, 37, 0, 2, 0, 4, 128, 128, 128, 23, 64, 21, 0, 0, 0, 0, 1, 244, 0, 0, 0, 0, 0, 5, 128, 128, 128, 5, 18, 16, 86, 229, 0, 6, 128, 128, 128, 1, 2];
-                // return newMp4;
                 return Array.from(source);
             },
             'stts': (source, box) => {
@@ -135,10 +119,11 @@ export default class Encode {
                 newBuf = newSize.concat(newBuf.concat(new Array(8).fill(0)));
 
                 this.sequence[this.traks.trakId] = [];
+                this.sampleDuration[this.traks.trakId] = [];
                 box.entry.map((o) => {
                     this.sequence[this.traks.trakId].push({sampleCount: o.sample_count, sampleDelta: o.sample_delta});
+                    this.sampleDuration[this.traks.trakId] = this.sampleDuration[this.traks.trakId].concat(new Array(o.sample_count).fill(o.sample_delta));
                 });
-                
                 return newBuf;
             },
             'stss': (source, box) => {
@@ -200,10 +185,7 @@ export default class Encode {
             'udta': (source, box) => {
                 const {size, type, value} = box;
                 let values = Array.from(value);
-                // values[93 - 8]--;
-                // values[97 - 8]++;
                 return [...this.createSize(size), ...this.createType(type), ...values];
-                // return [];
             },
             'free': (source) => {
                 return [];
@@ -229,6 +211,14 @@ export default class Encode {
             index += chunk[j].length;
         }
     }
+    getBaseMediaDecodeTime(tid, count) {
+        let durations = this.sampleDuration[tid];
+        let time = 0;
+        for(let i = 0; i < count; i++) {
+            time += durations[i];
+        }
+        return time;
+    }
     createMoof(n, i) {
         // console.log(createSamples(source, count, 1)); return;
         const count = this.keyFrameChunks['1'][i].length;
@@ -238,32 +228,22 @@ export default class Encode {
         // let soundsample = createSamples(n, source, count, 2);
         let fragsize = fragsample.reduce(function(a, b){return a + b.buffer.length}, 0);
         let fragsizes = fragsamples.reduce(function(a, b){return a + b.buffer.length}, 0);
-        let soundflags = [0, 0, 3, 1];
-        if(i > 0) {
-            soundflags = [0, 0, 2, 1];
-        }else {
-            soundflags = [0, 0, 3, 1];
-        }
-        let soundDuration = 1024;
-        // if(i > 0) {
-        //     soundDuration = 1024;
-        // }
-        // let videoDuration = getSampleDuration(this.sequence['1']);
         
-        // console.log(this.baseDataOffset);
-        // console.log(fragsample[0].sample_size, fragsamples[0].sample_size)
-        // console.log(fragsamples.reduce(function(a, b){return a.concat(b.buffer)}, []))
+        let videoSampleDuration = this.sampleDuration['1'][0];
+        let soundSampleDuration = this.sampleDuration['2'][0];
+
         this.moofOffsets.push(this.baseDataOffset);
         let precount = n - 1;
         let precounts = this.getSampleKeyIndex(2, i);
-        // let timeoffset = precounts * 1024;
-        // // console.log(precounts, precounts * 1024);
-        // if(i === 1) {
-        //     timeoffset = (precounts - 1) * 1024 + 4856; // to update
-        // }else if(i === 20) {
-        //     timeoffset = (precounts - 1) * 1024 + 2765;
-        // }
-        // fragmentMdats.push(fragsample.reduce(function(a, b){return a + b.sample_size}, 0) + fragsamples.reduce(function(a, b){return a + b.sample_size}, 0));
+
+        let baseMediaDecodeTimeVideo = this.getBaseMediaDecodeTime('1', precount);
+        let baseMediaDecodeTimeSound = this.getBaseMediaDecodeTime('2', precounts);
+
+        let trflag = [0, 0, 10, 5];
+        if(!this.timeoffsets.length) {
+            trflag = [0, 0, 3, 5];
+        }
+        
         let moof = {
             size: 176,
             type: 'moof',
@@ -284,7 +264,7 @@ export default class Encode {
                             trak_ID: 1,
                             base_data_offset: this.baseDataOffset,
                             // sample_description_index: 1,
-                            default_sample_duration: 1024,
+                            default_sample_duration: videoSampleDuration,
                             // default_sample_size: this.keyFrameChunks['1'][i][0],
                             default_sample_size: fragsample[0].sample_size,
                             buffer: [
@@ -292,7 +272,7 @@ export default class Encode {
                                 0, 0, 0, 1, 
                                 // ...this.createSize(this.baseDataOffset, 8), 
                                 // 0, 0, 0, 1,
-                                ...this.createSize(1024), 
+                                ...this.createSize(videoSampleDuration), 
                                 ...this.createSize(fragsample[0].sample_size),
                                 1, 1, 0, 0
                             ],
@@ -311,7 +291,7 @@ export default class Encode {
                         {
                             size: 20,
                             type: 'tfdt',
-                            buffer: [0, 0, 0, 20, 116, 102, 100, 116, 1, 0, 0, 0, ...this.createSize(precount*1001, 8)]
+                            buffer: [0, 0, 0, 20, 116, 102, 100, 116, 1, 0, 0, 0, ...this.createSize(baseMediaDecodeTimeVideo, 8)]
                             // buffer: [0, 0, 0, 20, 116, 102, 100, 116, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
                         },
                         {
@@ -323,7 +303,7 @@ export default class Encode {
                             samples: fragsample,
                             buffer: [
                                 ...this.createSize(fragsize + 24), 116, 114, 117, 110, 
-                                0, 0, 3, 5,
+                                ...trflag,
                                 ...this.createSize(count), ...this.createSize(fragsize),
                                 2, 0, 0, 0, 
                                 ...fragsample.reduce(function(a, b){return a.concat(b.buffer)}, [])
@@ -341,7 +321,7 @@ export default class Encode {
                             trak_ID: 2,
                             base_data_offset: this.baseDataOffset,
                             // sample_description_index: 1,
-                            default_sample_duration: 1024,
+                            default_sample_duration: soundSampleDuration,
                             // default_sample_size: this.keyFrameChunks['2'][i][0],
                             default_sample_size: fragsamples[0].sample_size,
                             buffer: [
@@ -349,7 +329,7 @@ export default class Encode {
                                 0, 0, 0, 2, 
                                 // ...this.createSize(this.baseDataOffset, 8), 
                                 // 0, 0, 0, 1,
-                                ...this.createSize(soundDuration), 
+                                ...this.createSize(soundSampleDuration), 
                                 ...this.createSize(fragsamples[0].sample_size),
                                 // 2, 0, 0, 0
                             ],
@@ -368,7 +348,7 @@ export default class Encode {
                         {
                             size: 20,
                             type: 'tfdt',
-                            buffer: [0, 0, 0, 20, 116, 102, 100, 116, 1, 0, 0, 0, ...this.createSize(precounts*1024, 8)]
+                            buffer: [0, 0, 0, 20, 116, 102, 100, 116, 1, 0, 0, 0, ...this.createSize(baseMediaDecodeTimeSound, 8)]
                             // buffer: [0, 0, 0, 20, 116, 102, 100, 116, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
                         },
                         {
@@ -437,44 +417,26 @@ export default class Encode {
         // {sample_duration, sample_size, sample_flags, sample_composition_time_offset}
         const fragsamples = [];
         let fragsize = 0;
-        const duration = this.durations[trakId];
-        let sampleduration = 1024;
-        let soundDuration = 1024;
         let sampleOffset = 0;
         for(let i = 0; i < count; i++) {
             let samplesize = this.samples[trakId][i + n];
             let sampleoffset = this.timeoffsets[i + n] || 0;
+            let sampleduration = this.sampleDuration[trakId][i + n];
             if(trakId === 1) {
                 sampleOffset += sampleoffset;
-            }
-            // if(trakId === 1)console.log(i + n - 1)
-            if(i > 0){
-                sampleduration = 1024;
-            }
-            // if(j == 20 && i == count - 1) {
-            //     sampleduration = 2765;
-            //     soundDuration = 717;
-            // }
-            if(trakId === 2) {
-                sampleoffset = 1024;
-                // console.log(samplesize, i + n)
             }
             fragsize += samplesize;
             fragsamples.push({
                 sample_duration: sampleduration,
                 sample_size: samplesize,
                 sample_flags: 0,
-                sample_composition_time_offset: sampleoffset,
+                // sample_composition_time_offset: sampleduration,
                 // buffer: [0, 0, 0, 0, ...this.createSize(samplesize), 0, 0, 0, 0, ...this.createSize(sampleoffset)]
                 buffer: trakId == 1 ? 
-                        // [...this.createSize(samplesize), ...this.createSize(sampleoffset)] :
-                        [...this.createSize(1001), ...this.createSize(samplesize)] :
-                        // [...this.createSize(samplesize), ...this.createSize(sampleoffset)] :
-                        // [...this.createSize(25), ...this.createSize(samplesize)]
-                        // [...this.createSize(samplesize)]
-                        // j > 0 && j < 20 ? 
-                        // [...this.createSize(samplesize)] :
-                        [...this.createSize(1024), ...this.createSize(samplesize)]
+                        this.timeoffsets.length ?
+                        [...this.createSize(samplesize), ...this.createSize(sampleoffset)] :
+                        [...this.createSize(sampleduration), ...this.createSize(samplesize)] :
+                        [...this.createSize(sampleduration), ...this.createSize(samplesize)]
             })
             
         }
@@ -601,23 +563,25 @@ export default class Encode {
         // console.log(soundChunk)
         this.samplePerChunk[this.traks.trakId] = trakChunk;
     }
+
+    /**
+     * 根据关键帧列表和samplePerChunk，创建fragment mdat box
+     * @param {原始数据} source 
+     * @param {起始位置} start 
+     */
     createMdat(source, start) {
+        const fromindex = start;
         const videoChunk = this.samplePerChunk[1];
         const soundChunk = this.samplePerChunk[2];
         const sample = this.samples[1];
-        const sampleSound = this.samples[2];
+        // const sampleSound = this.samples[2];
         const keyframesLength = this.keyframes.length;
-        let chunks = [];
-        let frames = [];
-        let step = 1;
         this.keyframes.push(sample.length);
 
-        console.log(this.samples, 'samples', this.samplePerChunk, 'samplePerChunk', this.keyframes);
+        // console.log(this.samples, 'samples', this.samplePerChunk, 'samplePerChunk', this.keyframes);
 
         let end = 0, bufferLength = 0;
         let videoBuffer = [], soundBuffer = [];
-        let keyFrameBuffer = [];
-        let keyChunkBuffer = [];
 
         let videoTracks = [];
         let soundTracks = [];
@@ -636,9 +600,6 @@ export default class Encode {
                 if(i === sampleLength - 1) {
                     // console.log(i, sample[i], sampleLength)
                     keySoundChunks = soundChunk[k];
-                    // console.log(i, k, keyVideoChunks, keySoundChunks);
-                    // keyFrameBuffer.push(keyVideoChunks);
-                    // keyFrameBuffer.push(keySoundChunks);
 
                     let chunkSize = keyVideoChunks.reduce(function(a, b){return a + b;}, 0);
                     end = start + chunkSize;
@@ -657,11 +618,9 @@ export default class Encode {
                     sampleLength += videoChunk[k].length;
                 }
             }else {
-                // console.log(keyFrameBuffer);
-                // keyChunkBuffer.push(keyFrameBuffer);
-                // keyFrameBuffer.push(keyVideoChunks);
+                keyVideoChunks.push(sample[i]);
                 if(i === sampleLength - 1) {
-                    keyVideoChunks.push(sample[i]);
+                    // keyVideoChunks.push(sample[i]);
 
                     let chunkSize = keyVideoChunks.reduce(function(a, b){return a + b;}, 0);
                     end = start + chunkSize;
@@ -672,13 +631,9 @@ export default class Encode {
                     videoTracks = videoTracks.concat(keyVideoChunks);
                     this.keyFrameChunks['1'].push(videoTracks);
                     videoTracks = [];
-
-                    // keyFrameBuffer = [];
-                    // keyFrameBuffer.push(keyVideoChunks);
-                    // keyVideoChunks = [];
+                    keyVideoChunks = [];
                     
                     keySoundChunks = soundChunk[k] || [];
-                    // keyFrameBuffer.push(keySoundChunks);
 
                     chunkSize = keySoundChunks.reduce(function(a, b){return a + b;}, 0);
                     end = start + chunkSize;
@@ -686,7 +641,7 @@ export default class Encode {
                     keySoundBuffer.push(soundBuffer);
                     soundBuffer = [];
                     start = end;
-                    // console.log(keySoundChunks, 'end');
+                    
                     soundTracks = soundTracks.concat(keySoundChunks);
                     this.keyFrameChunks['2'].push(soundTracks);
                     soundTracks = [];
@@ -694,8 +649,6 @@ export default class Encode {
                     k++;
                     sampleLength += videoChunk[k] ? videoChunk[k].length : 0;
                 }else {
-                    // keyFrameBuffer.push(keyVideoChunks);
-                    let keyVideoLength = keyVideoChunks.length;
                     let chunkSize = keyVideoChunks.reduce(function(a, b){return a + b;}, 0);
                     end = start + chunkSize;
                     videoBuffer.push(source.slice(start, end));
@@ -709,15 +662,11 @@ export default class Encode {
                     // console.log(keySoundChunks);
                     keySoundBuffer.push(soundBuffer);
                     soundBuffer = [];
-                    // soundTracks = soundTracks.concat(soundChunk[k] || []);
                     this.keyFrameChunks['2'].push(soundTracks);
                     soundTracks = [];
 
-                    // keyFrameBuffer = [];
                     keyVideoChunks = [];
-                    keyVideoChunks.push(sample[i]);
-
-                    sampleLength -= keyVideoLength;
+                    // keyVideoChunks.push(sample[i]);
                     
                 }
                 j++;
@@ -733,97 +682,9 @@ export default class Encode {
             videoBuffer = [];
             soundBuffer = [];
         }
-        console.log(this.keyFrameChunks);
+        // console.log(this.keyFrameChunks, keyVideoBuffer);
         // console.log(this.mdats);
-        return;
 
-
-
-
-        // let keyVideoChunks = [];
-        // let keySoundChunks = [];
-        // this.keyFrameChunks = {1: [], 2: []};
-
-        // let chunkLenth = videoChunk.length > soundChunk.length ? videoChunk.length : soundChunk.length;
-        // for(let i = 0; i < chunkLenth; i++) {
-        //     chunks.push(videoChunk[i] ? videoChunk[i].concat(soundChunk[i] || []) : [].concat(soundChunk[i]));
-        // }
-
-        // let res = [];
-        // let k = 0;
-        for(let i = 1, j = 1; j < sample.length;) {
-            step = videoChunk[k].length ? videoChunk[k].length : 1;
-            
-            if(j < this.keyframes[i]) {
-                res = res.concat(chunks[k]);
-                keyVideoChunks = keyVideoChunks.concat(videoChunk[k] || []);
-                keySoundChunks = keySoundChunks.concat(soundChunk[k] || []);
-                j += step;
-                k++;
-            }else {
-                i++;
-                frames.push(res);
-                this.keyFrameChunks['1'].push(keyVideoChunks);
-                this.keyFrameChunks['2'].push(keySoundChunks);
-                keyVideoChunks = [];
-                keySoundChunks = [];
-                res = [];
-            }
-
-        }
-        keyVideoChunks = keyVideoChunks.concat(videoChunk[k] || []);
-        keySoundChunks = keySoundChunks.concat(soundChunk[k] || []);
-        this.keyFrameChunks['1'].push(keyVideoChunks);
-        this.keyFrameChunks['2'].push(keySoundChunks);
-        frames.push(res);
-        // console.log(this.keyFrameChunks);
-        // console.log(this.keyFrameChunks, videoChunk, soundChunk);
-
-
-        // v s 分离
-
-        // let end = 0, bufferLength;
-        // let videoBuffer = [], soundBuffer = [];
-        for(let x = 0, y = 0, z = 0; x < keyframesLength;) {
-            if(y < this.keyFrameChunks['1'][x].length) {
-                let step = videoChunk[z].length;
-                let sizeVideo = videoChunk[z].reduce(function(a, b){return a + b}, 0);
-                // if(x === 0 && y === 0 && z === 0) {
-                //     sizeVideo -= 8;
-                // }
-                end = start + sizeVideo;
-                // videoBuffer = videoBuffer.concat(Array.from(source.slice(start, end)));
-                videoBuffer.push(source.slice(start, end));
-                start = end;
-
-                let sizeSound = soundChunk[z] ? soundChunk[z].reduce(function(a, b){return a + b}, 0) : 0;
-                end = start + sizeSound;
-                // soundBuffer = soundBuffer.concat(Array.from(source.slice(start, end)));
-                soundBuffer.push(source.slice(start, end));
-                start = end;
-
-                y += step;
-                z++;
-            }else {
-                // z++;
-                y = 0;
-                x++;
-                videoBuffer = this.concatTypeArray(...videoBuffer);
-                soundBuffer = this.concatTypeArray(...soundBuffer);
-                // this.videoTrack.push(videoBuffer);
-                bufferLength = videoBuffer.length + soundBuffer.length;
-                // this.mdats.push([...this.createSize(bufferLength + 8), 109, 100, 97, 116, ...videoBuffer, ...soundBuffer]);
-                let bufferHead = new Uint8Array([...this.createSize(bufferLength + 8), 109, 100, 97, 116]);
-                this.mdats.push(this.concatTypeArray(bufferHead, videoBuffer, soundBuffer));
-                videoBuffer = [];
-                soundBuffer = [];
-            }
-            // this.mdats.push([...videoBuffer, ...soundBuffer]);
-            // videoBuffer = [];
-            // soundBuffer = [];
-        }
-        // this.mdats.push([...this.createSize(size + 8), 109, 100, 97, 116, ...videoBuffer, ...soundBuffer]);
-        console.log(this.keyFrameChunks, this.mdats);
     }
     concatTypeArray(...arrays) {
         let total = 0;
@@ -887,7 +748,8 @@ export default class Encode {
 
                     if(type === 'moov') {
                         // box.children.push(mvex);
-                        box.children.splice(3, 0, this.mvex);
+                        // box.children.splice(3, 0, this.mvex);
+                        box.children.push(this.mvex);
                         box.size += this.mvex.size;
                     }
 
