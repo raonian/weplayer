@@ -917,7 +917,8 @@ export default class Decoder {
             'free': function() {},
             'iods': function() {},
             'mdat': function(buf, start, size, index) {
-                return {value: buf.slice(start, start + size)};
+                // return {value: buf.slice(start, start + size)};
+                return [];
             }
         }
 
