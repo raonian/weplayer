@@ -513,7 +513,7 @@ export default class Decoder {
 
                     start = end;
                     end = start + offset;
-                    const type = t.parseType(buf.slice(start, end));
+                    const type = t.parseType(buf.slice(start, end)).trim();
 
                     start = end;
                     offset = 6;
@@ -911,6 +911,10 @@ export default class Decoder {
             'pasp': function() {},
             'btrt': function() {},
             'smhd': function() {},
+            'tref': function(buf, start, size, index) {
+                return {value: buf.slice(start, start + size - 8)};
+            },
+            'hmhd': function(buf, start, size, index) {},
             'udta': function(buf, start, size, index) {
                 return {value: buf.slice(start, start + size - 8)};
             },
