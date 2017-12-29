@@ -224,7 +224,7 @@ export default class Encode {
             },
             'mdat': (source, box, start) => {
                 this.createMdat(source, start);
-                this.keyframes.slice(0, -1).map((n, i) => {
+                this.keyframes.slice(0, 11).map((n, i) => {
                     this.createMoof(n, i);
                 });
                 // this.createMoof(1, 0);
@@ -686,11 +686,12 @@ export default class Encode {
         const keyframesLength = this.keyframes.length;
         this.keyframes.push(sample.length);
 
-        // console.log(this.samples, 'samples', this.samplePerChunk, 'samplePerChunk', this.keyframes);
+        // console.log('samples', this.samples, '\nsamplePerChunk', this.samplePerChunk, '\nkeyframes', this.keyframes, '\noffsets', this.offsets);
 
         let end = 0, bufferLength = 0;
         let videoBuffer = [], soundBuffer = [];
         let keyframeInChunk = false;
+        let chunkAtSide = true;
 
         let videoTracks = [];
         let soundTracks = [];
@@ -710,13 +711,16 @@ export default class Encode {
             end = start + chunkSize;
             buffer.push(source.slice(start, end));
             start = end;
-            if(tid === videId) {
-                // console.log(start, t.offsets[sounId][k], keyframeInChunk);
-                // start = t.offsets[sounId][k] > end ? end : t.offsets[sounId][k];
-            }else {
-                // start = t.offsets[videId][k + 1] > end ? end : t.offsets[videId][k + 1];
+            if(chunkAtSide) {
+                if(tid === videId) {
+                    start = t.offsets[sounId][k];
+                }else {
+                    start = t.offsets[videId][k + 1];
+                }
+                
             }
-
+            // console.log(t.offsets[sounId][k], t.offsets[videId][k], k, chunkAtSide, j);
+            
             // console.log(start, k);
         }
 
@@ -787,6 +791,7 @@ export default class Encode {
                     keyframeInChunk = false;
                 }else {
                     keySoundChunks = soundChunk[k] || [];
+                    chunkAtSide = false;
                     if(videId < sounId) {
                         createBuffer(videoBuffer, keyVideoChunks, videId);
                     }else {
@@ -795,6 +800,7 @@ export default class Encode {
                         createBuffer(videoBuffer, keyVideoChunks, videId);
                         soundTracks = soundTracks.concat(keySoundChunks);
                     }
+                    chunkAtSide = true;
                     
 
                     keyVideoBuffer.push(videoBuffer);
@@ -916,8 +922,8 @@ export default class Encode {
             // return result;
         }
         parseMovie(movie);
-        // this.containBox.children[3].size = 0;
-        // this.containBox.children[4].size = 0;
+        this.containBox.children[3].size = 0;
+        this.containBox.children[4].size = 0;
         this.concatFragmentedBuffer(movie);
 
         return this.fragments;
