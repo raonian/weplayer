@@ -10,6 +10,7 @@ export default class Weplayer {
         this.range = '0-' + this.startRange;
         this.loadedSize = 0;
         this.parseIndex = 0;
+        this.cb = callback;
     
         this.init();
     }
@@ -30,6 +31,7 @@ export default class Weplayer {
                 console.log(buffer.buffered.start(0))
                 console.log(buffer.buffered.end(0))
                 // if(i==ranges.length) ms.endOfStream();
+                // t.cb();
             })
             
             getVideo(function(xhr){
@@ -62,5 +64,8 @@ export default class Weplayer {
         this.video.onload = function(e) {
             // window.URL.revokeObjectURL(t.video.src);
         };
+    }
+    play() {
+        // this.video.play();
     }
 }

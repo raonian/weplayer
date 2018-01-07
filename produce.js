@@ -6,7 +6,7 @@ import fs from 'fs';
 import Decoder from './src/js/decode';
 import Encoder from './src/js/encode';
 
-const rs = fs.createReadStream('./test/static/ssck.mp4');
+const rs = fs.createReadStream('./test/static/paper.mp4');
 let data = [];
 rs.on('data', function(buf) {
     data.push(buf);
