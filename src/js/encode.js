@@ -233,7 +233,7 @@ export default class Encode {
                 this.keyframes.map((n, i) => {
                     this.createMoof(n, i);
                 });
-                // this.keyframes.slice(0, -1).map((n, i) => {
+                // this.keyframes.slice(0, 10).map((n, i) => {
                 //     this.createMoof(n, i);
                 // });
                 // this.createMoof(1, 0);
@@ -695,7 +695,7 @@ export default class Encode {
         const keyframesLength = this.keyframes.length;
         // this.keyframes.push(sample.length);
 
-        console.log('samples', this.samples, '\nsamplePerChunk', this.samplePerChunk, '\nkeyframes', this.keyframes, '\noffsets', this.offsets);
+        // console.log('samples', this.samples, '\nsamplePerChunk', this.samplePerChunk, '\nkeyframes', this.keyframes, '\noffsets', this.offsets);
 
         let end = 0, bufferLength = 0;
         let videoBuffer = [], soundBuffer = [];
@@ -723,22 +723,17 @@ export default class Encode {
             if(chunkAtSide) {
                 if(videId < sounId) {
                     if(tid === videId) {
-                        start = t.offsets[sounId][k];
+                        start = t.offsets[sounId][i];
                     }else {
-                        start = t.offsets[videId][k + 1];
+                        start = t.offsets[videId][i + 1];
                     }
                 }else {
                     if(tid === videId) {
-                        start = t.offsets[sounId][k + 1];
+                        start = t.offsets[sounId][i + 1];
                     }else {
-                        start = t.offsets[videId][k];
+                        start = t.offsets[videId][i];
                     }
                 }
-                // if(tid === videId) {
-                //     start = t.offsets[sounId][k];
-                // }else {
-                //     start = t.offsets[videId][k + 1];
-                // }
                 
             }
             // console.log(t.offsets[sounId][k], t.offsets[videId][k], k, chunkAtSide, j);
@@ -870,19 +865,25 @@ export default class Encode {
             k = 0;
             for(; k < videoChunk[i].length; k++, n++) {
                 if(n === this.keyframes[j] - 1) {
-                    if(videId < sounId) {
-                        createBuffer(videoBuffer, keyVideoChunks, videId);
-                        createBuffer(soundBuffer, keySoundChunks, sounId);
-                        // soundTracks = soundTracks.concat(keySoundChunks);
-                    }else {
-                        // if(k !== videoChunk[i].length - 1){
-                        //     createBuffer(videoBuffer, keyVideoChunks);
-                        // }else {
-                        //     createBuffer(soundBuffer, keySoundChunks, sounId);
-                        //     createBuffer(videoBuffer, keyVideoChunks, videId);
-                        //     // soundTracks = soundTracks.concat(keySoundChunks);
-                        // }
+                    if(keyVideoChunks.length) {
+                        chunkAtSide = false;
+                        if(videId < sounId) {
+                            createBuffer(videoBuffer, keyVideoChunks, videId);
+                            // createBuffer(soundBuffer, keySoundChunks, sounId);
+                            // soundTracks = soundTracks.concat(keySoundChunks);
+                        }else {
+                            // if(k !== videoChunk[i].length - 1){
+                            //     createBuffer(videoBuffer, keyVideoChunks);
+                            // }else {
+                            //     createBuffer(soundBuffer, keySoundChunks, sounId);
+                            //     createBuffer(videoBuffer, keyVideoChunks, videId);
+                            //     // soundTracks = soundTracks.concat(keySoundChunks);
+                            // }
+                        }
+                        
                     }
+                    chunkAtSide = true;
+                    
                     keyVideoBuffer.push(videoBuffer);
                     videoBuffer = [];
                     keySoundBuffer.push(soundBuffer);
@@ -906,7 +907,7 @@ export default class Encode {
                     keySoundChunks = soundChunk[m] || [];
                     soundTracks = soundTracks.concat(keySoundChunks);
                     m++;
-
+                    
                     if(videId < sounId) {
                         createBuffer(videoBuffer, keyVideoChunks, videId);
                         createBuffer(soundBuffer, keySoundChunks, sounId);
@@ -948,8 +949,8 @@ export default class Encode {
 
 
  
-        console.log(keyVideoBuffer, keySoundBuffer);
-        console.log(this.keyFrameChunks);
+        // console.log(keyVideoBuffer, keySoundBuffer);
+        // console.log(this.keyFrameChunks);
         // console.log(this.keyFrameChunks[videId].reduce(function(a, b){return a + b.length;}, 0));
         // console.log(this.mdats);
         // console.log('timeoffset', this.offsets, '\nduration', this.sampleDuration, '\nchunks', this.chunks);
