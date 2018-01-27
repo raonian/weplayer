@@ -173,7 +173,7 @@ export default class Encode {
                     this.timeoffsets.push(sampleOffset);
                     // this.timeoffsets
                 }
-                
+                this.timeoffsets[0] = 0;
                 return [];
             },
             'stsc': (source, box) => {
@@ -741,125 +741,6 @@ export default class Encode {
             // console.log(start, k);
         }
 
-        // for(; i < sample.length; i++) {
-        //     if(i < this.keyframes[j] - 1) {
-        //         keyVideoChunks.push(sample[i]);
-                
-        //         if(i === sampleLength - 1) {
-        //             // console.log(i, sample[i], sampleLength)
-        //             keySoundChunks = soundChunk[k] || [];
-
-        //             if(videId < sounId) {
-        //                 createBuffer(videoBuffer, keyVideoChunks, videId);
-        //                 createBuffer(soundBuffer, keySoundChunks, sounId);
-        //                 soundTracks = soundTracks.concat(keySoundChunks);
-        //             }else {
-        //                 if(keyframeInChunk){
-        //                     // createBuffer(soundBuffer, keySoundChunks);
-        //                     createBuffer(videoBuffer, keyVideoChunks);
-        //                 }else {
-        //                     createBuffer(soundBuffer, keySoundChunks, sounId);
-        //                     createBuffer(videoBuffer, keyVideoChunks, videId);
-        //                     soundTracks = soundTracks.concat(keySoundChunks);
-        //                 }
-        //             }
-
-        //             videoTracks = videoTracks.concat(keyVideoChunks);
-        //             keyVideoChunks = [];
-
-        //             k++;
-        //             sampleLength += videoChunk[k].length;
-
-        //             keyframeInChunk = false;
-        //         }
-        //     }else {
-        //         keyVideoChunks.push(sample[i] || []);
-        //         if(i === sampleLength - 1) {
-        //             // keyVideoChunks.push(sample[i]);
-        //             keySoundChunks = soundChunk[k] || [];
-
-        //             if(videId < sounId) {
-        //                 createBuffer(videoBuffer, keyVideoChunks, videId);
-        //                 createBuffer(soundBuffer, keySoundChunks, sounId);
-        //             }else {
-        //                 createBuffer(soundBuffer, keySoundChunks, sounId);
-        //                 createBuffer(videoBuffer, keyVideoChunks, videId);
-        //             }
-
-        //             keyVideoBuffer.push(videoBuffer);
-        //             videoBuffer = [];
-                    
-        //             videoTracks = videoTracks.concat(keyVideoChunks);
-        //             this.keyFrameChunks[videId].push(videoTracks);
-        //             videoTracks = [];
-        //             keyVideoChunks = [];
-                    
-
-        //             keySoundBuffer.push(soundBuffer);
-        //             soundBuffer = [];
-                    
-        //             soundTracks = soundTracks.concat(keySoundChunks);
-        //             this.keyFrameChunks[sounId].push(soundTracks);
-        //             soundTracks = [];
-
-        //             k++;
-        //             sampleLength += videoChunk[k] ? videoChunk[k].length : 0;
-
-        //             keyframeInChunk = false;
-        //         }else {
-        //             keySoundChunks = soundChunk[k] || [];
-        //             chunkAtSide = false;
-        //             if(videId < sounId) {
-        //                 createBuffer(videoBuffer, keyVideoChunks, videId);
-        //             }else {
-        //                 // keySoundChunks = soundChunk[k] || [];
-        //                 createBuffer(soundBuffer, keySoundChunks, sounId);
-        //                 createBuffer(videoBuffer, keyVideoChunks, videId);
-        //                 soundTracks = soundTracks.concat(keySoundChunks);
-        //             }
-        //             chunkAtSide = true;
-                    
-
-        //             keyVideoBuffer.push(videoBuffer);
-        //             videoBuffer = [];
-                    
-        //             videoTracks = videoTracks.concat(keyVideoChunks);
-        //             this.keyFrameChunks[videId].push(videoTracks);
-        //             videoTracks = [];
-        //             keyVideoChunks = [];
-
-        //             // console.log(keySoundChunks);
-        //             keySoundBuffer.push(soundBuffer);
-        //             soundBuffer = [];
-        //             this.keyFrameChunks[sounId].push(soundTracks);
-        //             soundTracks = [];
-
-                    
-        //             // keyVideoChunks.push(sample[i]);
-        //             keyframeInChunk = true;
-        //         }
-                
-        //         j++;
-        //     }
-            
-        // }
-        // for(let x = 0; x < keyframesLength; x++) {
-        //     videoBuffer = this.concatTypeArray(...keyVideoBuffer[x]);
-        //     soundBuffer = this.concatTypeArray(...keySoundBuffer[x]);
-        //     bufferLength = videoBuffer.length + soundBuffer.length;
-        //     let bufferHead = new Uint8Array([...this.createSize(bufferLength + 8), 109, 100, 97, 116]);
-        //     if(videId < sounId) {
-        //         this.mdats.push(this.concatTypeArray(bufferHead, videoBuffer, soundBuffer)); 
-        //     }else {
-        //         this.mdats.push(this.concatTypeArray(bufferHead, soundBuffer, videoBuffer));
-        //     }
-            
-        //     videoBuffer = [];
-        //     soundBuffer = [];
-        // }
-        // keyVideoBuffer = null;
-        // keySoundBuffer = null;
-
         let n = 0, m = 0;
         for(; i < videoChunk.length; i++) {
             k = 0;
@@ -869,16 +750,13 @@ export default class Encode {
                         chunkAtSide = false;
                         if(videId < sounId) {
                             createBuffer(videoBuffer, keyVideoChunks, videId);
-                            // createBuffer(soundBuffer, keySoundChunks, sounId);
-                            // soundTracks = soundTracks.concat(keySoundChunks);
                         }else {
-                            // if(k !== videoChunk[i].length - 1){
-                            //     createBuffer(videoBuffer, keyVideoChunks);
-                            // }else {
-                            //     createBuffer(soundBuffer, keySoundChunks, sounId);
-                            //     createBuffer(videoBuffer, keyVideoChunks, videId);
-                            //     // soundTracks = soundTracks.concat(keySoundChunks);
-                            // }
+                            keySoundChunks = soundChunk[m] || [];
+                            soundTracks = soundTracks.concat(keySoundChunks);
+                            m++;
+                            createBuffer(soundBuffer, keySoundChunks, sounId);
+                            createBuffer(videoBuffer, keyVideoChunks, videId);
+                            keyframeInChunk = true;
                         }
                         
                     }
@@ -903,17 +781,24 @@ export default class Encode {
                     keyVideoChunks.push(videoChunk[i][k]);
                     videoTracks = videoTracks.concat(keyVideoChunks);
                     // keyVideoChunks = [];
-
-                    keySoundChunks = soundChunk[m] || [];
-                    soundTracks = soundTracks.concat(keySoundChunks);
-                    m++;
                     
                     if(videId < sounId) {
+                        keySoundChunks = soundChunk[m] || [];
+                        soundTracks = soundTracks.concat(keySoundChunks);
+                        m++;
                         createBuffer(videoBuffer, keyVideoChunks, videId);
                         createBuffer(soundBuffer, keySoundChunks, sounId);
                     }else {
-                        createBuffer(soundBuffer, keySoundChunks, sounId);
-                        createBuffer(videoBuffer, keyVideoChunks, videId);
+                        if(keyframeInChunk) {
+                            createBuffer(videoBuffer, keyVideoChunks, videId);
+                        }else {
+                            keySoundChunks = soundChunk[m] || [];
+                            soundTracks = soundTracks.concat(keySoundChunks);
+                            m++;
+                            createBuffer(soundBuffer, keySoundChunks, sounId);
+                            createBuffer(videoBuffer, keyVideoChunks, videId);
+                        }
+                        keyframeInChunk = false;
                     }
 
                     keyVideoChunks = [];
@@ -944,10 +829,8 @@ export default class Encode {
             videoBuffer = [];
             soundBuffer = [];
         }
-        // keyVideoBuffer = null;
-        // keySoundBuffer = null;
-
-
+        keyVideoBuffer = null;
+        keySoundBuffer = null;
  
         // console.log(keyVideoBuffer, keySoundBuffer);
         // console.log(this.keyFrameChunks);
